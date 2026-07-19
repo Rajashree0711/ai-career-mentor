@@ -5,6 +5,11 @@ from database import engine, get_db
 from models import User
 from schemas import UserCreate, UserResponse, UserLogin, Token
 from security import hash_password, verify_password, create_access_token, get_current_user
+from fastapi import UploadFile, File
+import cloudinary.uploader
+from models import Resume
+from schemas import ResumeResponse
+import cloudinary_config
 
 app = FastAPI(title="AI Career Mentor API")
 
@@ -49,3 +54,31 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
 @app.get("/me", response_model=UserResponse)
 def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
+
+@app.post("/resume/upload", response_model=ResumeResponse)
+def upload_resume(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+
+    upload_result = cloudinary.uploader.upload(
+    file.file,
+    resource_type="raw",
+    folder="resumes",
+    use_filename=True,
+    unique_filename=True,
+    format="pdf"
+)
+
+    new_resume = Resume(
+        user_id=current_user.id,
+        file_url=upload_result["secure_url"],
+        file_name=file.filename
+    )
+    db.add(new_resume)
+    db.commit()
+    db.refresh(new_resume)
+    return new_resume

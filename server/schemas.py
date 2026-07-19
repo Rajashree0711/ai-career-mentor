@@ -20,3 +20,10 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+class ResumeResponse(BaseModel):
+    id: int
+    file_url: str
+    file_name: str
+
+    class Config:
+        from_attributes = True
