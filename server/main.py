@@ -10,9 +10,16 @@ import cloudinary.uploader
 from models import Resume
 from schemas import ResumeResponse
 import cloudinary_config
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="AI Career Mentor API")
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 @app.get("/")
 def read_root():
     return {"message": "AI Career Mentor API is running"}
