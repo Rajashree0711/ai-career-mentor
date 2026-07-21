@@ -11,18 +11,22 @@ from models import Resume
 from schemas import ResumeResponse
 import cloudinary_config
 from fastapi.middleware.cors import CORSMiddleware
+from parser import extract_text_from_pdf
 
 app = FastAPI(title="AI Career Mentor API")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 @app.get("/")
 def read_root():
     return {"message": "AI Career Mentor API is running"}
+
 
 @app.get("/db-check")
 def db_check():
@@ -32,6 +36,7 @@ def db_check():
         return {"database": "connected successfully"}
     except Exception as e:
         return {"database": "connection failed", "error": str(e)}
+
 
 @app.post("/auth/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
@@ -58,9 +63,12 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
 
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
+
+
 @app.get("/me", response_model=UserResponse)
 def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
+
 
 @app.post("/resume/upload", response_model=ResumeResponse)
 def upload_resume(
@@ -72,18 +80,23 @@ def upload_resume(
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
     upload_result = cloudinary.uploader.upload(
-    file.file,
-    resource_type="raw",
-    folder="resumes",
-    use_filename=True,
-    unique_filename=True,
-    format="pdf"
-)
+        file.file,
+        resource_type="raw",
+        type="upload",
+        access_mode="public",
+        folder="resumes",
+        use_filename=True,
+        unique_filename=True,
+        format="pdf"
+    )
+
+    parsed_text = extract_text_from_pdf(upload_result["secure_url"])
 
     new_resume = Resume(
         user_id=current_user.id,
         file_url=upload_result["secure_url"],
-        file_name=file.filename
+        file_name=file.filename,
+        raw_text=parsed_text
     )
     db.add(new_resume)
     db.commit()

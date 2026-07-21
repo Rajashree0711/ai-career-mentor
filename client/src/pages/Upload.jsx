@@ -27,7 +27,9 @@ function Upload() {
       if (err.response?.status === 401) {
         navigate("/login");
       } else {
-        setMessage("Upload failed. Please try again.");
+        setMessage(
+          "Upload failed: " + (err.response?.data?.detail || err.message),
+        );
       }
     } finally {
       setLoading(false);

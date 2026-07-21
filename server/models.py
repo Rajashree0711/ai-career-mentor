@@ -19,4 +19,5 @@ class Resume(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     file_url = Column(String, nullable=False)
     file_name = Column(String, nullable=False)
+    raw_text = Column(String, nullable=True)
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
