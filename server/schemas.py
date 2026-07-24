@@ -39,3 +39,12 @@ class AnalysisResponse(BaseModel):
 
     class Config:
         from_attributes = True
+from typing import Dict, Any
+
+class RoadmapResponse(BaseModel):
+    id: int
+    learning_plan: List[Dict[str, Any]]
+    interview_questions: List[Dict[str, Any]]
+
+    class Config:
+        from_attributes = True

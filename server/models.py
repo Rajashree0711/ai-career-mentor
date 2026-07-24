@@ -32,3 +32,11 @@ class Analysis(Base):
     weaknesses = Column(String, nullable=True)
     missing_skills = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+class Roadmap(Base):
+    __tablename__ = "roadmaps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    analysis_id = Column(Integer, ForeignKey("analyses.id"), nullable=False)
+    learning_plan = Column(String, nullable=True)
+    interview_questions = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

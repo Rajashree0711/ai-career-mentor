@@ -16,6 +16,9 @@ from models import Analysis
 from schemas import AnalysisResponse
 from ai_analysis import analyze_resume
 import json as json_module
+from models import Roadmap
+from schemas import RoadmapResponse
+from roadmap_generator import generate_roadmap
 
 app = FastAPI(title="AI Career Mentor API")
 app.add_middleware(
@@ -143,4 +146,38 @@ def analyze(
         weaknesses=result["weaknesses"],
         missing_skills=result["missing_skills"]
     )
-    
+@app.post("/analysis/{analysis_id}/roadmap", response_model=RoadmapResponse)
+def create_roadmap(
+    analysis_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    analysis = db.query(Analysis).join(Resume).filter(
+        Analysis.id == analysis_id,
+        Resume.user_id == current_user.id
+    ).first()
+
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    resume = db.query(Resume).filter(Resume.id == analysis.resume_id).first()
+
+    missing_skills = json_module.loads(analysis.missing_skills)
+    weaknesses = json_module.loads(analysis.weaknesses)
+
+    result = generate_roadmap(resume.raw_text, missing_skills, weaknesses)
+
+    new_roadmap = Roadmap(
+        analysis_id=analysis.id,
+        learning_plan=json_module.dumps(result["learning_plan"]),
+        interview_questions=json_module.dumps(result["interview_questions"])
+    )
+    db.add(new_roadmap)
+    db.commit()
+    db.refresh(new_roadmap)
+
+    return RoadmapResponse(
+        id=new_roadmap.id,
+        learning_plan=result["learning_plan"],
+        interview_questions=result["interview_questions"]
+    )
