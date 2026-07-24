@@ -12,6 +12,10 @@ from schemas import ResumeResponse
 import cloudinary_config
 from fastapi.middleware.cors import CORSMiddleware
 from parser import extract_text_from_pdf
+from models import Analysis
+from schemas import AnalysisResponse
+from ai_analysis import analyze_resume
+import json as json_module
 
 app = FastAPI(title="AI Career Mentor API")
 app.add_middleware(
@@ -102,3 +106,41 @@ def upload_resume(
     db.commit()
     db.refresh(new_resume)
     return new_resume
+@app.post("/resume/{resume_id}/analyze", response_model=AnalysisResponse)
+def analyze(
+    resume_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    resume = db.query(Resume).filter(
+        Resume.id == resume_id,
+        Resume.user_id == current_user.id
+    ).first()
+
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    if not resume.raw_text:
+        raise HTTPException(status_code=400, detail="Resume has no extracted text")
+
+    result = analyze_resume(resume.raw_text)
+
+    new_analysis = Analysis(
+        resume_id=resume.id,
+        ats_score=result["ats_score"],
+        strengths=json_module.dumps(result["strengths"]),
+        weaknesses=json_module.dumps(result["weaknesses"]),
+        missing_skills=json_module.dumps(result["missing_skills"])
+    )
+    db.add(new_analysis)
+    db.commit()
+    db.refresh(new_analysis)
+
+    return AnalysisResponse(
+        id=new_analysis.id,
+        ats_score=new_analysis.ats_score,
+        strengths=result["strengths"],
+        weaknesses=result["weaknesses"],
+        missing_skills=result["missing_skills"]
+    )
+    

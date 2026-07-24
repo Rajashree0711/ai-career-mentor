@@ -27,3 +27,15 @@ class ResumeResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+from typing import List
+
+class AnalysisResponse(BaseModel):
+    id: int
+    ats_score: int
+    strengths: List[str]
+    weaknesses: List[str]
+    missing_skills: List[str]
+
+    class Config:
+        from_attributes = True

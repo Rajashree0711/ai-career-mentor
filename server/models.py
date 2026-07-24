@@ -21,3 +21,14 @@ class Resume(Base):
     file_name = Column(String, nullable=False)
     raw_text = Column(String, nullable=True)
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Analysis(Base):
+    __tablename__ = "analyses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    resume_id = Column(Integer, ForeignKey("resumes.id"), nullable=False)
+    ats_score = Column(Integer, nullable=True)
+    strengths = Column(String, nullable=True)
+    weaknesses = Column(String, nullable=True)
+    missing_skills = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
